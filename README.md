@@ -1,14 +1,14 @@
-#### DISCLAIMER: i used European ROM with SHA-1 b15f37a33a16dbae09b220dae5cfc4d665ee528c, other ROMs may have some code differences
+#### DISCLAIMER: I used European ROM with SHA-1 b15f37a33a16dbae09b220dae5cfc4d665ee528c, other ROMs may have some code differences
 
 # RHF analysis
 
 ## Intro
 
-I was interested in the internals of this game, and savefiles (if unencrypted) are relatively low-hanging fruit.
+I was interested in the internals of this game, and save files (if unencrypted) are relatively low-hanging fruit.
 
 One of the problems with this game is the ambiguity of the flow system. What does it even mean?   
 
-All i could find is people saying they don't know [here](https://gamefaqs.gamespot.com/boards/609557-rhythm-heaven-fever/62377586), [here](https://rhythmheaven.fandom.com/wiki/Rhythm_Game) and [here](https://www.reddit.com/r/rhythmheaven/comments/c5bx0d/how_does_flow_work_in_fever/)
+All I could find is people saying they don't know [here](https://gamefaqs.gamespot.com/boards/609557-rhythm-heaven-fever/62377586), [here](https://rhythmheaven.fandom.com/wiki/Rhythm_Game) and [here](https://www.reddit.com/r/rhythmheaven/comments/c5bx0d/how_does_flow_work_in_fever/)
 
 In the Reddit thread, a responder even says
 
@@ -22,11 +22,11 @@ Oh, that's encouraging. If really nobody knows that, then let's dive in into our
 Dolphin's debugger turned out pretty good, it supports breakpoints, watchpoints, memory view, logging, there's even a cheat manager!
 [Here's a great, exhaustive tutorial for all of this](https://tasvideos.org/Forum/Topics/18555?CurrentPage=1&Highlight=444464)
 
-And ofc the RE necessity, Ghidra.
+And of course the RE necessity, Ghidra.
 
 The process consisted of looking in Ghidra discomp for interesting functions/variables and setting up breakpoints in the Dolphin's debugger. Although it's enough for a simple analysis, it's not enough for anything more breadth. I wish we will do a whole decomp someday (maybe after [tengoku](https://github.com/arthurtilly/rhythmtengoku)).
 
-comparing two binary files is as easy as doing:
+Comparing two binary files is as easy as doing:
 
 `
 $ diff <(xxd Riq1.dat) <(xxd Riq2.dat)
@@ -49,15 +49,15 @@ $ diff <(xxd Riq1.dat) <(xxd Riq2.dat)
 | Address | Data type | Desc |
 | ------- | --------- | ---- |
 |  0x09 |byte| how many level groups are unlocked, counting from 0x00|
-|  0x0a |byte| last played level. 0x00 rythm test, 0x01 rythm toys, 0x02 endless games, 0x03 extra games, 0x04 credits, normal levels start at 0x05 (so after the monkey golf, this initializes to 0x05)|
+|  0x0a |byte| last played level. 0x00 rhythm test, 0x01 rhythm toys, 0x02 endless games, 0x03 extra games, 0x04 credits, normal levels start at 0x05 (so after the monkey golf, this initializes to 0x05)|
 |  0x0b-0x3c |byte| level statuses |
-|  0x3d |byte| indicates if the game has started, 1 if started, 0 if not|
+|  0x3d |byte| indicates if the first game has been beaten, 1 if started, 0 if not (if yes, it loades the leftmost column of additional games)|
 |  0x3e-0xa1 |word| level points|
 |  0xa2 |byte| tells the game that it should recalculate things, like adjust the last played game score, with the points multiplier|
 |  0xa3 |byte| status of the prev played level (possibly?)|
 |  0xa4 |word| points multiplier|
 |  0xa6-0xa9 |word| seem to be const in all saves|
-|  0xaa-0xdd |word| i actually don't know, it's generated at the creation of the save, and probably completedly changes after winning a group. Maybe it's encoded.|
+|  0xaa-0xdd |word| I actually don't know, it's generated at the creation of the save, and probably completedly changes after winning a group. Maybe it's encoded.|
 |  0xec |dword| wakeup caller points|
 |  0xf0 |dword| much monk points|
 |  0xf4 |dword| lady cupid points|
@@ -68,7 +68,7 @@ $ diff <(xxd Riq1.dat) <(xxd Riq2.dat)
 |  0x251 |byte| first time in cafe|
 |  0x252 |byte| barista congratulates perfect campain done|
 |  0x253 |byte| first time in dual play|
-|  0x254 |byte| voice language, 0 if english, 1 if japanese|
+|  0x254 |byte| voice language, 0 if English, 1 if Japanese|
 |  0x255-0x27f |byte| unknown or zeroes|
 
 ## Level statuses:
@@ -99,7 +99,7 @@ uint calc_points_mult(int *points_mult)
 
 - points\_scored increases up to 100, if the key is pressed at the ideal moment. If it's too fast/too slow but, the number of points in an action is smaller (always divisible by 5).
 
-- points\_mult is just points gained in the currently played level. However if this level was already beaten, then the old number of points is adjusted, with the new number of points. Thus it works de facto as a multiplier
+- points\_mult is just points gained in the currently played level. However, if this level was already beaten, then the old number of points is adjusted, with the new number of points. Thus, it works de facto as a multiplier
 
 ## Flow calculate algorithm (in python):
 

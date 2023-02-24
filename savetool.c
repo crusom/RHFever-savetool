@@ -14,6 +14,8 @@
 #define LEVEL_POINTS_OFFSET 0x3e
 #define LEVEL_STATUSES_OFFSET 0x0b
 #define LAST_PLAYED_LEVEL_OFFSET 0x0a
+#define STATUS_PREV_PLAYED_LEVEL 0xa3
+#define POINTS_MULT 0xa4
 
 #define INT32_SWAP(num) ((num>>24)&0xff) | ((num<<8)&0xff0000) | ((num>>8)&0xff00) | ((num<<24)&0xff000000);
 #define INT16_SWAP(num) ((num>>8)&0xff) | ((num<<8)&0xff00);
@@ -73,6 +75,8 @@ static int map_save(char *fname, void **data) {
 
 static void save_checksum(void *save) {*(uint32_t*)(save + 0xa00) = INT32_SWAP(crc32_byte(save, 0xa00));}
 
+static void game_has_started(void *save) {*(uint8_t*)(save + 0x3d) = 0x3;}
+
 static void group_adjust(void *save, int max_level) {
   if (max_level != 50) {
     ((uint8_t*)(save + LEVEL_STATUSES_OFFSET))[max_level] = 0x2;
@@ -83,6 +87,8 @@ static void group_adjust(void *save, int max_level) {
 
   *(uint8_t*)(save + UNLOCKED_LEVEL_GROUPS_OFFSET) = (max_level == 50) ? 0x09 : max_level / 5;
   *(uint8_t*)(save + LAST_PLAYED_LEVEL_OFFSET) = 0x05 + max_level - 1; 
+  *(uint8_t*)(save + STATUS_PREV_PLAYED_LEVEL) = ((uint8_t*)(save + LAST_PLAYED_LEVEL_OFFSET))[max_level]; 
+  *(uint16_t*)(save + POINTS_MULT) = INT16_SWAP(0x2137);
 }
 
 static void unlock(void *save, int unlock_from, int unlock_up_to) {
@@ -104,6 +110,7 @@ static void unlock(void *save, int unlock_from, int unlock_up_to) {
     ((uint16_t*)(save + LEVEL_POINTS_OFFSET))[i] = INT16_SWAP(0x2137);
       
   group_adjust(save, unlock_up_to); 
+  game_has_started(save);  
   save_checksum(save);
 }
 
@@ -120,7 +127,8 @@ static void change(void *save, int level, int points, int status) {
 
   ((uint8_t*)(save + LEVEL_STATUSES_OFFSET))[level - 1] = status;
   ((uint16_t*)(save + LEVEL_POINTS_OFFSET))[level - 1]  = INT16_SWAP(points);
-    
+   
+  game_has_started(save);  
   save_checksum(save);
 }     
 
@@ -137,6 +145,8 @@ static int get_flow(void *save) {
       points_sum += points + 0x32;
     }
   }
+  
+  if (levels_len == 0 || points_sum == 0) return 0;
   
   flow = (levels_len - 1) * 0x46; // that's why flow starts from 70
   flow = flow / 0x32 + (flow >> 0x1f);
