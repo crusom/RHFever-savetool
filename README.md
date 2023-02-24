@@ -111,7 +111,7 @@ uint calc_points_mult(int *points_mult)
       levels_len += 1
       points_sum += points + 0x32
 
-  flow = (levels_len - 1) * 0x46 # that's why flow starts from 70
+  flow = (levels_len - 1) * 0x46
   flow = flow / 0x32 + (flow >> 0x1f)
   points_sum = (points_sum / levels_len) / 100 + (points_sum / levels_len >> 0x1f)
   points_sum = points_sum - (points_sum >> 0x1f)
