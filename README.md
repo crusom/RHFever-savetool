@@ -153,6 +153,8 @@ see below section
 
 data.bin is a compressed file which contains *a Header, followed by a Bk Header and a set of files contained in a files section, and finally a footer* full format description [here](https://wiibrew.org/wiki/Savegame_Files)
 
+It's just a packed savefile.
+
 #### How to unpack/pack data.bin?
 
 - use tachtig (unpack) and twintig in Segher's Wii.git on linux ([wiki](https://wiibrew.org/wiki/Segher%27s_Wii.git), [github](https://github.com/MasterofGalaxies/wii), [release download](https://github.com/MasterofGalaxies/wii/releases/download/2022/wii.zip))
@@ -167,7 +169,7 @@ I make some changes to tachtig code, now it saves all the keys in default/, whic
 
 ### keys keys keys
 
-to extract savefile we need this shared keys:
+to extract data.bin we need this shared keys:
 
 - SD key (ab01b9d8e1622b08afbad84dbfc2a55d), 
 - SD IV (216712e6aa1f689f95c5a22324dc6a98),
@@ -182,7 +184,7 @@ to extract savefile we need this shared keys:
 
 > If someone shares save games to another Wii using an SD card, the Wii will be able to decrypt it using the shared secret. However, it has no way of checking the Wii's signature, because it doesn't know the other console's public key. To solve this problem, the save game also contains a copy of the Wii's unique public key -- the one that matches the private key used to sign the save file. (The copy of the Wii's public key is called a 'certificate'.) "
 
-to pack savefile again we need NG-keys:
+to pack data.bin again we need NG-keys:
 
 - NG-id (your consoles id)
 - NG-key-id
@@ -190,7 +192,7 @@ to pack savefile again we need NG-keys:
 - NG-sig (your consoles elliptical curve crypt. public key)
 - NG-priv (private key)
 
-**All of it is given in a savefile except of the private key.**
+**All of it is given in a data.bin except of the private key.**
 
 ### NG-keys dolphin
 
