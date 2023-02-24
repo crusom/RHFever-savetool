@@ -109,22 +109,19 @@ uint calc_points_mult(int *points_mult)
   for points in level_points:
     if points != 0xffff:
       levels_len += 1
-      points_sum += points + 0x32
+      points_sum += points + 50
 
-  flow = (levels_len - 1) * 0x46
-  flow = flow / 0x32 + (flow >> 0x1f)
-  points_sum = (points_sum / levels_len) / 100 + (points_sum / levels_len >> 0x1f)
-  points_sum = points_sum - (points_sum >> 0x1f)
+  flow = (levels_len - 1) * 70
+  flow = flow / 50
+  points_sum = points_sum / (levels_len * 100)
   if points_sum < 0:
     levels_len = 0
   else:
-    levels_len = 100;
-    if points_sum < 0x65:
-        levels_len = points_sum
+    levels_len = min(points_sum, 100)
   
-  levels_len = levels_len * ((flow - (flow >> 0x1f)) + 0x32)
-  points_sum = levels_len / 100 + (levels_len >> 0x1f)
-  flow = (points_sum - (points_sum >> 0x1f)) + 0x14
+  levels_len = levels_len * (flow + 50)
+  points_sum = levels_len / 100
+  flow = points_sum + 20
   
   return flow
 ```
