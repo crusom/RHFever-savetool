@@ -101,6 +101,39 @@ uint calc_points_mult(int *points_mult)
 
 - points\_mult is just points gained in the currently played level. However, if this level was already beaten, then the old number of points is adjusted, with the new number of points. Thus, it works de facto as a multiplier
 
+## Set points algorithm:
+
+#### The function is at 0x8007842c 
+
+```C
+void set_level_points(char *save_buf, uint level_number_param, int points_mult)
+{
+  uint uVar1;
+  int level_points;
+  short sVar2;
+  uint level_number;
+  
+  level_number = level_number_param & 0xff;
+  /* 0x3e is offset to the points */
+  level_points = (int)*(short *)(save_buf + level_number * 2 + 0x3e);
+  if (level_points < 0) {
+    *(short *)(save_buf + level_number * 2 + 0x3e) = (short)points_mult;
+    return;
+  }
+  uVar1 = points_mult - level_points >> 0x1f;
+  if ((int)((uVar1 ^ points_mult - level_points) - uVar1) < 300) {
+    sVar2 = *(short *)(save_buf + level_number * 2 + 0x3e);
+    if (level_points < points_mult) {
+      sVar2 = (short)points_mult;
+    }
+    *(short *)(save_buf + level_number * 2 + 0x3e) = sVar2;
+    return;
+  }
+  *(short *)(save_buf + level_number * 2 + 0x3e) = (short)((points_mult + level_points) / 2);
+  return;
+}
+```
+
 ## Flow calculate algorithm (in python):
 
 #### The function is at 0x8007848c
@@ -206,5 +239,5 @@ FE100 can nicely get all the keys from the given keys.bin and savefile.
 
 # TODO
 - [ ] analyze dual play
-- [ ] analyze function adjusting points with points\_mult (probably 0x800043c4)
+- [x] analyze function adjusting points with points\_mult (probably 0x8007842c)
 - [ ] add flow changing in savetool
