@@ -80,30 +80,95 @@ $ diff <(xxd Riq1.dat) <(xxd Riq2.dat)
 *  0x04 - superb
 *  0x05 - perfect
 
+## Adding points on action
+
+#### The function is at 0x801eb10c
+
+There are actually two places that adds points to [points\_mult](#whats-points_mult).
+If user reacted to an action, then it's 0x801eaa28, otherwise it's the function below.
+
+Both functions do the same, except the former does some other things besides it.
+
+```C
+/*
+    *points_mult_things_p = 0x90649350 
+    points_mult_things_p[0x108] = points_sum    (0x90649770)
+    points_mult_things_p[0x109] = count_actions (0x90649774)
+   *(undefined *)(points_mult_things_p + 0x10a) = times_pressed (0x90649778)
+*/
+
+void add_points_to_points_mult(int *points_mult_things_p,uint always_zero)
+{
+  /* checks byte at 0x90668d0d, this byte is set at the start of level.
+     maybe this check is useful when we play demo?
+  */
+  if (*(char *)(iRam8032180c + 0xdd) == '\0') {
+    return;
+  }
+  /* the condition is dead code actually as all calls to this function have 0 in the always_zero parameter */
+  if (always_zero == 0) {
+    always_zero = (uint)*(byte *)(points_mult_things_p + 0x10a) * 5 & 0xff;
+  }
+  *(undefined *)(points_mult_things_p + 0x10a) = 0;
+  points_mult_things_p[0x108] = points_mult_things_p[0x108] + always_zero;
+  points_mult_things_p[0x109] = points_mult_things_p[0x109] + 1;
+  return;
+}
+
+```
+#### Mult definitions
+
+- points\_sum, points are added to it every action, if the key is pressed at the ideal moment. If it's too fast/too slow but, the number of points in an action is smaller (always divisible by 5, and max is 100).
+- count\_actions increases by 1 every action
+- times\_pressed counts buttons pressed between two actions
+
+
 ## Points calculate algorithm:
 
 #### The function is at 0x801eb158
 
+#### What's points\_mult?
+points\_mult is just points gained in the currently played level. However, if this level was already beaten, then the old number of points is adjusted, with the new number of points (see [here](#set-points-algorithm)). Thus, it works de facto as a multiplier
+
 ```C
-/* points_mult = 0x90649350 
-   points_mult[0x108] = points_scored
-   points_mult[0x109] = len_actions
+/* 
+   I really couldn't make up a better name than that, sorry
+   *points_mult_things_p = 0x90649350 
+   points_mult_things_p[0x108] = points_sum
+   points_mult_things_p[0x109] = count_actions
 */
 
-uint calc_points_mult(int *points_mult)
+uint calc_points_mult(int *points_mult_things_p)
 {
-  return (uint)(points_mult[0x108] * 100) / (uint)points_mult[0x109];
+  return (uint)(points_mult_things_p[0x108] * 100) / (uint)points_mult_things_p[0x109];
 }
 ```
-- len\_actions increases by 1 every action
 
-- points\_scored increases up to 100, if the key is pressed at the ideal moment. If it's too fast/too slow but, the number of points in an action is smaller (always divisible by 5).
+#### Definitions
 
-- points\_mult is just points gained in the currently played level. However, if this level was already beaten, then the old number of points is adjusted, with the new number of points. Thus, it works de facto as a multiplier
+[see this](#mult\-definitions)
+
+## Save points_mult function
+
+#### The function is at 0x800780c0
+
+```C
+void save_points_mult(char *save_buf,char param_2,short points_mult)
+{
+                    /* should recalculate? */
+  save_buf[0xa2] = '\x01';
+                    /* level status */
+  save_buf[0xa3] = param_2;
+                    /* saves points_mult */
+  *(short *)(save_buf + 0xa4) = points_mult;
+  return;
+}
+```
+
 
 ## Set points algorithm:
 
-#### The function is at 0x8007842c 
+#### The function is at 0x8007842c, and it's called by 0x80081dd0
 
 ```C
 void set_level_points(char *save_buf, uint level_number_param, int points_mult)
@@ -133,8 +198,12 @@ void set_level_points(char *save_buf, uint level_number_param, int points_mult)
   return;
 }
 ```
+#### Definitions
 
-## Flow calculate algorithm (in python):
+[see this](#mult\-definitions)
+
+
+## Flow calculate algorithm (in python for simplifiction):
 
 #### The function is at 0x8007848c
 
@@ -158,6 +227,21 @@ void set_level_points(char *save_buf, uint level_number_param, int points_mult)
   
   return flow
 ```
+
+## Addresses
+
+**r13 is a variable having (probably always) 0x80328500 address**
+
+| Address | Name | Parameters | Desc |
+| ------- | ---- | ---------- | ---- |
+| 0x80079460 | get\_save\_buffer() | int param1 (r13-0x6d0c) | returns 0x9066936c (save\_buffer) |
+| 0x800782a4 | get\_points\_mult() | char \*save\_buffer | returns save\_buffer + 0xa4 (eg. points\_mult)|
+| 0x80078288 | get\_should\_recalculate\_flag() | char \*save\_buffer | returns save\_buffer + 0x0a (eg. should\_recalculate\_flag) |
+| 0x8007829c | get\_status\_of\_prev\_level() | char \*save\_buffer | returns save\_buffer + 0xa3 (eg. prev\_level\_status) |
+| 0x800043c4 | memcpy() | void* dest, const void* src, size\_t size | [source](https://github.com/CelestialAmber/xenoblade/blob/76b251539176d6d29f8e5c9cf08a9c9749e178d1/src/PowerPC_EABI_Support/Runtime/__mem.c) |
+| 0x80081858 | recalcuate\_flow() | idk | recalculates flow and sets it |
+| 0x80081bac | save\_flow() | idk | does some magic and saves flow |
+| 0x801eb0f8 | zero\_points\_mult | [char \*points\_mult\_things\_p](#whats-points_mult) | sets to 0 points\_sum, count\_actions and times\_pressed|
 
 # Notes about data.bin and keys
 
